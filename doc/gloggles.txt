@@ -1,0 +1,100 @@
+*gloggles.txt*  Line history viewer for Neovim                      *gloggles*
+
+==============================================================================
+CONTENTS                                                   *gloggles-contents*
+
+  1. Introduction .......................... |gloggles-introduction|
+  2. Requirements .......................... |gloggles-requirements|
+  3. Installation .......................... |gloggles-installation|
+  4. Usage ................................. |gloggles-usage|
+  5. Configuration ......................... |gloggles-configuration|
+  6. Mappings .............................. |gloggles-mappings|
+  7. Highlights ............................ |gloggles-highlights|
+
+==============================================================================
+1. INTRODUCTION                                       *gloggles-introduction*
+
+gloggles is a viewer for `git log -L` (line history). Select a range of lines
+in a tracked file, invoke the viewer, and browse every commit that touched
+those lines with an inline diff preview. If the repository's origin points at
+GitHub, pressing <CR> opens the pull request in your browser and `o` opens
+the commit.
+
+==============================================================================
+2. REQUIREMENTS                                       *gloggles-requirements*
+
+- Neovim 0.10 or newer
+- git
+- A GitHub `origin` remote (optional, only for the PR/commit browser links)
+
+==============================================================================
+3. INSTALLATION                                       *gloggles-installation*
+
+With lazy.nvim: >lua
+    {
+      "noizwaves/gloggles.nvim",
+      keys = {
+        { "<leader>gl", mode = "x", desc = "Gloggles: line history" },
+      },
+      opts = {},
+    }
+<
+==============================================================================
+4. USAGE                                                     *gloggles-usage*
+
+Select lines in visual mode and press the default keymap (|<leader>gl|), or
+run the command with a range:
+>
+    :'<,'>Gloggles
+<
+                                                                  *:Gloggles*
+:[range]Gloggles
+    Open the viewer for the given line range in the current file. Defaults
+    to the current line when no range is given.
+
+==============================================================================
+5. CONFIGURATION                                     *gloggles-configuration*
+
+Call `require("gloggles").setup({ ... })` or pass `opts` via lazy.nvim.
+
+Defaults: >lua
+    {
+      keymap = "<leader>gl",          -- set to false to disable
+      preview = {
+        enabled_by_default = true,
+        list_width_ratio = 0.3,
+      },
+      ui = {
+        title = " git log -L (line history) ",
+        backdrop_margin = 4,
+      },
+    }
+<
+To disable the default keymap before the plugin loads, set: >lua
+    vim.g.gloggles_no_default_keymap = 1
+<
+==============================================================================
+6. MAPPINGS                                               *gloggles-mappings*
+
+Inside the viewer:
+
+    j / k       Next / previous commit
+    p           Toggle the diff preview pane
+    <CR>        Open the PR associated with the commit (GitHub origin)
+    o           Open the commit on GitHub
+    h           Toggle the key reference overlay
+    <Esc>       Close the viewer
+
+==============================================================================
+7. HIGHLIGHTS                                           *gloggles-highlights*
+
+These groups are defined with `default = true` so your colorscheme wins:
+
+    GlogglesDate        Commit date          (links to Special)
+    GlogglesAuthor      Commit author        (links to Identifier)
+    GlogglesSubject     Commit subject       (links to Comment)
+    GlogglesPR          Pull request number  (links to Type)
+    GlogglesHelp        Help overlay text    (links to Comment)
+    GlogglesHelpKey     Help overlay keys    (links to Special)
+
+ vim:tw=78:ts=8:ft=help:norl:
