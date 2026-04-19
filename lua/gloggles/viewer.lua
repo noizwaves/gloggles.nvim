@@ -5,6 +5,8 @@ local help = require("gloggles.help")
 
 local M = {}
 
+local SEL_NS = vim.api.nvim_create_namespace("gloggles_selection")
+
 local INACTIVE_WINHL =
   "Normal:GlogglesNormal,NormalFloat:GlogglesNormal,FloatBorder:GlogglesBorder,FloatTitle:GlogglesTitle"
 local ACTIVE_WINHL =
@@ -117,7 +119,7 @@ local function create_viewer(commits, git_root, rel_path, start_line, end_line)
     zindex = 50,
   })
   vim.wo[list_win].wrap = false
-  vim.wo[list_win].cursorline = true
+  vim.wo[list_win].cursorline = false
   vim.wo[list_win].winhighlight = ACTIVE_WINHL
 
   local diff_buf = vim.api.nvim_create_buf(false, true)
@@ -146,10 +148,49 @@ local function create_viewer(commits, git_root, rel_path, start_line, end_line)
   state.line_to_commit = line_to_commit
   state.commit_first_line = commit_first_line
 
+  local function set_selection(idx)
+    vim.api.nvim_buf_clear_namespace(list_buf, SEL_NS, 0, -1)
+    local first = commit_first_line[idx]
+    if not first then
+      return
+    end
+    for _, ln in ipairs({ first, first + 1 }) do
+      vim.api.nvim_buf_set_extmark(list_buf, SEL_NS, ln - 1, 0, {
+        line_hl_group = "GlogglesSelection",
+      })
+    end
+  end
+  state.set_selection = set_selection
+
   if #commits > 0 then
     state.current_commit_idx = 1
+    set_selection(1)
     preview.update_diff_preview(diff_buf, commits[1])
   end
+
+  -- Hide the character cursor while the commit list is focused; the full-row
+  -- selection highlight stands in for the cursor position.
+  local saved_guicursor = vim.o.guicursor
+  vim.opt.guicursor = "a:GlogglesHiddenCursor"
+  vim.api.nvim_create_autocmd("BufEnter", {
+    buffer = list_buf,
+    callback = function()
+      vim.opt.guicursor = "a:GlogglesHiddenCursor"
+    end,
+  })
+  vim.api.nvim_create_autocmd("BufLeave", {
+    buffer = list_buf,
+    callback = function()
+      vim.o.guicursor = saved_guicursor
+    end,
+  })
+  vim.api.nvim_create_autocmd("BufWipeout", {
+    buffer = list_buf,
+    once = true,
+    callback = function()
+      vim.o.guicursor = saved_guicursor
+    end,
+  })
 
   if opts.preview.enabled_by_default then
     preview.toggle(state)
@@ -162,6 +203,7 @@ local function create_viewer(commits, git_root, rel_path, start_line, end_line)
       local idx = line_to_commit[cursor_line]
       if idx and idx ~= state.current_commit_idx then
         state.current_commit_idx = idx
+        set_selection(idx)
         if state.preview_visible and state.diff_win and vim.api.nvim_win_is_valid(state.diff_win) then
           preview.update_diff_preview(diff_buf, commits[idx])
           vim.api.nvim_win_set_cursor(state.diff_win, { 1, 0 })
@@ -210,6 +252,7 @@ local function create_viewer(commits, git_root, rel_path, start_line, end_line)
       if line then
         vim.api.nvim_win_set_cursor(list_win, { line, 0 })
         state.current_commit_idx = target
+        set_selection(target)
         if state.preview_visible and state.diff_win and vim.api.nvim_win_is_valid(state.diff_win) then
           preview.update_diff_preview(diff_buf, commits[target])
           vim.api.nvim_win_set_cursor(state.diff_win, { 1, 0 })
