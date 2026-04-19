@@ -202,7 +202,7 @@ local function create_viewer(commits, git_root, rel_path, start_line, end_line)
   end, kopts)
 
   vim.keymap.set("n", "c", function()
-    local cmd = git.build_log_command(rel_path, start_line, end_line)
+    local cmd = string.format("git log -L %d,%d:%s", start_line, end_line, rel_path)
     vim.fn.setreg("+", cmd)
     vim.fn.setreg("*", cmd)
     vim.notify("Copied git log command to clipboard", vim.log.levels.INFO)
