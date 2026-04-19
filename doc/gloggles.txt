@@ -7,9 +7,10 @@ CONTENTS                                                   *gloggles-contents*
   2. Requirements .......................... |gloggles-requirements|
   3. Installation .......................... |gloggles-installation|
   4. Usage ................................. |gloggles-usage|
-  5. Configuration ......................... |gloggles-configuration|
-  6. Mappings .............................. |gloggles-mappings|
-  7. Highlights ............................ |gloggles-highlights|
+  5. Help .................................. |gloggles-help|
+  6. Configuration ......................... |gloggles-configuration|
+  7. Mappings .............................. |gloggles-mappings|
+  8. Highlights ............................ |gloggles-highlights|
 
 ==============================================================================
 1. INTRODUCTION                                       *gloggles-introduction*
@@ -33,9 +34,6 @@ the commit.
 With lazy.nvim: >lua
     {
       "noizwaves/gloggles.nvim",
-      keys = {
-        { "<leader>gl", mode = "x", desc = "Gloggles: line history" },
-      },
       opts = {},
     }
 <
@@ -53,7 +51,16 @@ run the command with a range:
     to the current line when no range is given.
 
 ==============================================================================
-5. CONFIGURATION                                     *gloggles-configuration*
+5. HELP                                                       *gloggles-help*
+
+Run `:help gloggles` to open this document. It mirrors the README and lives
+at `doc/gloggles.txt` in the repository.
+
+Inside the viewer, press `h` to toggle an overlay that lists the available
+keys without leaving the window.
+
+==============================================================================
+6. CONFIGURATION                                     *gloggles-configuration*
 
 Call `require("gloggles").setup({ ... })` or pass `opts` via lazy.nvim.
 
@@ -65,7 +72,7 @@ Defaults: >lua
         list_width_ratio = 0.3,
       },
       ui = {
-        title = " git log -L (line history) ",
+        title = "Gloggles (git line history)",
         backdrop_margin = 4,
       },
     }
@@ -74,7 +81,7 @@ To disable the default keymap before the plugin loads, set: >lua
     vim.g.gloggles_no_default_keymap = 1
 <
 ==============================================================================
-6. MAPPINGS                                               *gloggles-mappings*
+7. MAPPINGS                                               *gloggles-mappings*
 
 Inside the viewer:
 
@@ -86,7 +93,7 @@ Inside the viewer:
     <Esc>       Close the viewer
 
 ==============================================================================
-7. HIGHLIGHTS                                           *gloggles-highlights*
+8. HIGHLIGHTS                                           *gloggles-highlights*
 
 These groups are defined with `default = true` so your colorscheme wins:
 
