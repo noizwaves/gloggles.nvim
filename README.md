@@ -33,8 +33,8 @@ Select lines in visual mode and press `<leader>gl`, or run `:Gloggles` with a ra
 | ------- | -------------------------------- |
 | `j`/`k` | Next / previous commit           |
 | `p`     | Toggle the diff preview pane     |
-| `<CR>`  | Open the PR on GitHub            |
-| `o`     | Open the commit on GitHub        |
+| `<CR>`  | Open the PR on GitHub (falls back to the commit if there is no PR) |
+| `c`     | Copy the underlying `git log -L` command to the system clipboard |
 | `h`     | Toggle the key reference overlay |
 | `<Esc>` | Close the viewer                 |
 

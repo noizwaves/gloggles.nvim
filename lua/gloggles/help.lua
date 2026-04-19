@@ -3,8 +3,8 @@ local M = {}
 local help_entries = {
   { "j/k", "navigate commits" },
   { "p", "toggle diff preview" },
-  { "Enter", "open PR in browser" },
-  { "o", "open commit in browser" },
+  { "Enter", "open PR / commit in browser" },
+  { "c", "copy git log command to clipboard" },
   { "h", "toggle this help" },
   { "Esc", "close" },
 }
