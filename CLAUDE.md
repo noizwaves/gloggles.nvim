@@ -29,4 +29,4 @@ Key flow: visual selection → `viewer.open_for_visual_selection` → `git.repo_
 
 ## Docs
 
-User-facing docs live in `README.md` and `doc/gloggles.txt` (the `:help gloggles` page). Keep them aligned when changing keys, options, or highlight groups.
+User-facing docs live in `README.md` and `doc/gloggles.txt` (the `:help gloggles` page). When you change anything user-visible — default keys, config options in `lua/gloggles/config.lua`, commands, or highlight groups — update all three in the same change: `README.md`, `doc/gloggles.txt`, and this `CLAUDE.md`. The help file and README should stay mirrored in content; `CLAUDE.md` only needs updating when the architecture notes above drift.
