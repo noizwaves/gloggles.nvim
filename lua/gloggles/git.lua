@@ -14,10 +14,11 @@ local function parse_remote(git_root)
   if not remote or remote == "" then
     return nil
   end
-  local owner, repo = remote:match("github%.com[:/]([^/]+)/([^/%.]+)")
+  local owner, repo = remote:match("github%.com[:/]([^/]+)/(.+)")
   if not owner then
     return nil
   end
+  repo = repo:gsub("%.git$", ""):gsub("/$", "")
   return owner, repo
 end
 
