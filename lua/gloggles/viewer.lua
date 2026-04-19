@@ -12,12 +12,12 @@ local function render_commit_list(buf, commits)
   local commit_first_line = {}
 
   for i, c in ipairs(commits) do
-    local line1 = c.date .. "  " .. c.author
+    local line1 = c.date .. " " .. c.author
     local base = #lines
 
     table.insert(lines, line1)
     table.insert(highlights, { base, 0, #c.date, "GlogglesDate" })
-    table.insert(highlights, { base, #c.date + 2, #line1, "GlogglesAuthor" })
+    table.insert(highlights, { base, #c.date + 1, #line1, "GlogglesAuthor" })
 
     table.insert(lines, c.subject)
     table.insert(highlights, { base + 1, 0, #c.subject, "GlogglesSubject" })
