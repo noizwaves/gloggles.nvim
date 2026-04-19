@@ -32,12 +32,6 @@ local function render_commit_list(buf, commits)
     line_to_commit[base + 1] = i
     line_to_commit[base + 2] = i
     commit_first_line[i] = base + 1
-
-    if i < #commits then
-      local sep_line = #lines
-      table.insert(lines, "")
-      line_to_commit[sep_line + 1] = i
-    end
   end
 
   vim.bo[buf].modifiable = true
