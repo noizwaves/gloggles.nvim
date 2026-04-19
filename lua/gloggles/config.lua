@@ -7,7 +7,7 @@ local defaults = {
     list_width_ratio = 0.3,
   },
   ui = {
-    title = " git log -L (line history) ",
+    title = "Gloggles (git line history)",
     backdrop_margin = 4,
   },
 }

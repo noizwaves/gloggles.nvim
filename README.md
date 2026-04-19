@@ -15,9 +15,6 @@ With [lazy.nvim](https://github.com/folke/lazy.nvim):
 ```lua
 {
   "noizwaves/gloggles.nvim",
-  keys = {
-    { "<leader>gl", mode = "x", desc = "Gloggles: line history" },
-  },
   opts = {},
 }
 ```
@@ -41,9 +38,15 @@ Select lines in visual mode and press `<leader>gl`, or run `:Gloggles` with a ra
 | `h`     | Toggle the key reference overlay |
 | `<Esc>` | Close the viewer                 |
 
+## Help
+
+Run `:help gloggles` inside Neovim to open the bundled help page, which mirrors this README and is kept in `doc/gloggles.txt`.
+
+Inside the viewer, press `h` to toggle an overlay that lists the available keys without leaving the window.
+
 ## Configuration
 
-`setup` is optional — defaults are applied automatically. To override:
+`setup` is optional — defaults are applied automatically. See [`lua/gloggles/config.lua`](lua/gloggles/config.lua) for the full default table. To override:
 
 ```lua
 require("gloggles").setup({
@@ -53,7 +56,7 @@ require("gloggles").setup({
     list_width_ratio = 0.3,     -- commit list takes 30% of the viewer width
   },
   ui = {
-    title = " git log -L (line history) ",
+    title = "Gloggles (git line history)",
     backdrop_margin = 4,
   },
 })
