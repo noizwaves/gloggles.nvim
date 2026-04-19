@@ -5,6 +5,13 @@ local help = require("gloggles.help")
 
 local M = {}
 
+local SEL_NS = vim.api.nvim_create_namespace("gloggles_selection")
+
+local INACTIVE_WINHL =
+  "Normal:GlogglesNormal,NormalFloat:GlogglesNormal,FloatBorder:GlogglesBorder,FloatTitle:GlogglesTitle"
+local ACTIVE_WINHL =
+  "Normal:GlogglesNormal,NormalFloat:GlogglesNormal,FloatBorder:GlogglesBorderActive,FloatTitle:GlogglesTitleActive"
+
 local function render_commit_list(buf, commits)
   local lines = {}
   local highlights = {}
@@ -25,12 +32,6 @@ local function render_commit_list(buf, commits)
     line_to_commit[base + 1] = i
     line_to_commit[base + 2] = i
     commit_first_line[i] = base + 1
-
-    if i < #commits then
-      local sep_line = #lines
-      table.insert(lines, "")
-      line_to_commit[sep_line + 1] = i
-    end
   end
 
   vim.bo[buf].modifiable = true
@@ -46,32 +47,54 @@ local function render_commit_list(buf, commits)
   return line_to_commit, commit_first_line
 end
 
+-- Layout is computed in terms of inner content sizes; each pane has a
+-- rounded border rendered 1 cell outside its content rectangle.
+function M.compute_layout(preview_visible)
+  local opts = config.get()
+  local editor_w = vim.o.columns
+  -- reserve space for cmdline + statusline so edge-to-edge (ratio=1.0) fits
+  local editor_h = vim.o.lines - vim.o.cmdheight - 1
+
+  local total_w = math.floor(editor_w * opts.ui.width_ratio)
+  local total_h = math.floor(editor_h * opts.ui.height_ratio)
+
+  local base_col = math.floor((editor_w - total_w) / 2)
+  local base_row = math.floor((editor_h - total_h) / 2)
+
+  local inner_h = total_h - 2
+  local list_row = base_row + 1
+  local list_col = base_col + 1
+
+  local layout = {
+    base_col = base_col,
+    base_row = base_row,
+    total_w = total_w,
+    total_h = total_h,
+    inner_h = inner_h,
+    list_row = list_row,
+    list_col = list_col,
+  }
+
+  if preview_visible then
+    -- 5 cols of chrome: list border (2) + gap (1) + preview border (2)
+    local content_w = total_w - 5
+    local list_w = math.max(10, math.floor(content_w * opts.preview.list_width_ratio))
+    layout.list_w = list_w
+    layout.preview_w = content_w - list_w
+    -- preview content sits 3 cells right of list content's right edge
+    -- (list right border + gap + preview left border)
+    layout.preview_col = list_col + list_w + 3
+    layout.preview_row = list_row
+  else
+    layout.list_w = total_w - 2
+  end
+
+  return layout
+end
+
 local function create_viewer(commits, git_root, rel_path, start_line, end_line)
   local opts = config.get()
-
-  local editor_w = vim.o.columns
-  local editor_h = vim.o.lines
-
-  local backdrop_h = editor_h - opts.ui.backdrop_margin
-  local inner_h = backdrop_h
-
-  local backdrop_buf = vim.api.nvim_create_buf(false, true)
-  local backdrop_win = vim.api.nvim_open_win(backdrop_buf, false, {
-    relative = "editor",
-    width = editor_w - 2,
-    height = backdrop_h,
-    col = 0,
-    row = 0,
-    style = "minimal",
-    border = "rounded",
-    title = opts.ui.title,
-    title_pos = "center",
-    zindex = 40,
-  })
-
-  local inner_w = editor_w - 4
-  local inner_col = 1
-  local inner_row = 1
+  local layout = M.compute_layout(opts.preview.enabled_by_default)
 
   local list_buf = vim.api.nvim_create_buf(false, true)
   vim.bo[list_buf].buftype = "nofile"
@@ -79,16 +102,19 @@ local function create_viewer(commits, git_root, rel_path, start_line, end_line)
 
   local list_win = vim.api.nvim_open_win(list_buf, true, {
     relative = "editor",
-    width = inner_w,
-    height = inner_h,
-    col = inner_col,
-    row = inner_row,
+    width = layout.list_w,
+    height = layout.inner_h,
+    col = layout.list_col,
+    row = layout.list_row,
     style = "minimal",
-    border = "none",
+    border = "rounded",
+    title = opts.ui.list_title,
+    title_pos = "center",
     zindex = 50,
   })
   vim.wo[list_win].wrap = false
-  vim.wo[list_win].cursorline = true
+  vim.wo[list_win].cursorline = false
+  vim.wo[list_win].winhighlight = ACTIVE_WINHL
 
   local diff_buf = vim.api.nvim_create_buf(false, true)
   vim.bo[diff_buf].buftype = "nofile"
@@ -96,8 +122,6 @@ local function create_viewer(commits, git_root, rel_path, start_line, end_line)
   vim.bo[diff_buf].filetype = "diff"
 
   local state = {
-    backdrop_buf = backdrop_buf,
-    backdrop_win = backdrop_win,
     list_buf = list_buf,
     list_win = list_win,
     diff_buf = diff_buf,
@@ -111,20 +135,56 @@ local function create_viewer(commits, git_root, rel_path, start_line, end_line)
     autocmd_id = nil,
     preview_visible = false,
     help_visible = false,
-    inner_w = inner_w,
-    inner_h = inner_h,
-    inner_col = inner_col,
-    inner_row = inner_row,
+    layout = layout,
   }
 
   local line_to_commit, commit_first_line = render_commit_list(list_buf, commits)
   state.line_to_commit = line_to_commit
   state.commit_first_line = commit_first_line
 
+  local function set_selection(idx)
+    vim.api.nvim_buf_clear_namespace(list_buf, SEL_NS, 0, -1)
+    local first = commit_first_line[idx]
+    if not first then
+      return
+    end
+    for _, ln in ipairs({ first, first + 1 }) do
+      vim.api.nvim_buf_set_extmark(list_buf, SEL_NS, ln - 1, 0, {
+        line_hl_group = "GlogglesSelection",
+      })
+    end
+  end
+  state.set_selection = set_selection
+
   if #commits > 0 then
     state.current_commit_idx = 1
+    set_selection(1)
     preview.update_diff_preview(diff_buf, commits[1])
   end
+
+  -- Hide the character cursor while the commit list is focused; the full-row
+  -- selection highlight stands in for the cursor position.
+  local saved_guicursor = vim.o.guicursor
+  vim.opt.guicursor = "a:GlogglesHiddenCursor"
+  vim.api.nvim_create_autocmd("BufEnter", {
+    buffer = list_buf,
+    callback = function()
+      vim.opt.guicursor = "a:GlogglesHiddenCursor"
+    end,
+  })
+  vim.api.nvim_create_autocmd("BufLeave", {
+    buffer = list_buf,
+    callback = function()
+      vim.o.guicursor = saved_guicursor
+    end,
+  })
+  vim.api.nvim_create_autocmd("BufWipeout", {
+    buffer = list_buf,
+    once = true,
+    callback = function()
+      vim.o.guicursor = saved_guicursor
+    end,
+  })
 
   if opts.preview.enabled_by_default then
     preview.toggle(state)
@@ -137,11 +197,43 @@ local function create_viewer(commits, git_root, rel_path, start_line, end_line)
       local idx = line_to_commit[cursor_line]
       if idx and idx ~= state.current_commit_idx then
         state.current_commit_idx = idx
+        set_selection(idx)
         if state.preview_visible and state.diff_win and vim.api.nvim_win_is_valid(state.diff_win) then
           preview.update_diff_preview(diff_buf, commits[idx])
           vim.api.nvim_win_set_cursor(state.diff_win, { 1, 0 })
         end
       end
+    end,
+  })
+
+  -- Active-border highlight: swap winhighlight on focus change.
+  local tracked_wins = function()
+    local wins = { state.list_win }
+    if state.diff_win then
+      table.insert(wins, state.diff_win)
+    end
+    if state.help_win then
+      table.insert(wins, state.help_win)
+    end
+    return wins
+  end
+
+  local win_enter_id = vim.api.nvim_create_autocmd("WinEnter", {
+    callback = function()
+      local cur = vim.api.nvim_get_current_win()
+      for _, w in ipairs(tracked_wins()) do
+        if vim.api.nvim_win_is_valid(w) then
+          vim.wo[w].winhighlight = (w == cur) and ACTIVE_WINHL or INACTIVE_WINHL
+        end
+      end
+    end,
+  })
+
+  vim.api.nvim_create_autocmd("BufWipeout", {
+    buffer = list_buf,
+    once = true,
+    callback = function()
+      pcall(vim.api.nvim_del_autocmd, win_enter_id)
     end,
   })
 
@@ -154,6 +246,7 @@ local function create_viewer(commits, git_root, rel_path, start_line, end_line)
       if line then
         vim.api.nvim_win_set_cursor(list_win, { line, 0 })
         state.current_commit_idx = target
+        set_selection(target)
         if state.preview_visible and state.diff_win and vim.api.nvim_win_is_valid(state.diff_win) then
           preview.update_diff_preview(diff_buf, commits[target])
           vim.api.nvim_win_set_cursor(state.diff_win, { 1, 0 })
@@ -207,16 +300,6 @@ local function create_viewer(commits, git_root, rel_path, start_line, end_line)
     vim.fn.setreg("*", cmd)
     vim.notify("Copied git log command to clipboard", vim.log.levels.INFO)
   end, kopts)
-
-  vim.api.nvim_create_autocmd("WinEnter", {
-    buffer = backdrop_buf,
-    once = true,
-    callback = function()
-      if vim.api.nvim_win_is_valid(list_win) then
-        vim.api.nvim_set_current_win(list_win)
-      end
-    end,
-  })
 
   vim.cmd("stopinsert")
   return state

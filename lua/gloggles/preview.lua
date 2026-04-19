@@ -14,20 +14,41 @@ end
 
 function M.toggle(state)
   local opts = config.get()
+  local viewer = require("gloggles.viewer")
 
   if state.preview_visible then
     if state.diff_win and vim.api.nvim_win_is_valid(state.diff_win) then
       vim.api.nvim_win_close(state.diff_win, true)
     end
     state.diff_win = nil
-    vim.api.nvim_win_set_width(state.list_win, state.inner_w)
     state.preview_visible = false
+
+    local layout = viewer.compute_layout(false)
+    state.layout = layout
+    if vim.api.nvim_win_is_valid(state.list_win) then
+      vim.api.nvim_win_set_config(state.list_win, {
+        relative = "editor",
+        width = layout.list_w,
+        height = layout.inner_h,
+        col = layout.list_col,
+        row = layout.list_row,
+      })
+    end
     return
   end
 
-  local list_w = math.floor(state.inner_w * opts.preview.list_width_ratio)
-  local diff_w = state.inner_w - list_w - 1
-  vim.api.nvim_win_set_width(state.list_win, list_w)
+  local layout = viewer.compute_layout(true)
+  state.layout = layout
+
+  if vim.api.nvim_win_is_valid(state.list_win) then
+    vim.api.nvim_win_set_config(state.list_win, {
+      relative = "editor",
+      width = layout.list_w,
+      height = layout.inner_h,
+      col = layout.list_col,
+      row = layout.list_row,
+    })
+  end
 
   local diff_buf = state.diff_buf
   if not vim.api.nvim_buf_is_valid(diff_buf) then
@@ -40,15 +61,19 @@ function M.toggle(state)
 
   state.diff_win = vim.api.nvim_open_win(diff_buf, false, {
     relative = "editor",
-    width = diff_w,
-    height = state.inner_h,
-    col = state.inner_col + list_w + 1,
-    row = state.inner_row,
+    width = layout.preview_w,
+    height = layout.inner_h,
+    col = layout.preview_col,
+    row = layout.preview_row,
     style = "minimal",
-    border = { "", "", "", "", "", "", "", "│" },
+    border = "rounded",
+    title = opts.ui.preview_title,
+    title_pos = "center",
     zindex = 50,
   })
   vim.wo[state.diff_win].wrap = false
+  vim.wo[state.diff_win].winhighlight =
+    "Normal:GlogglesNormal,NormalFloat:GlogglesNormal,FloatBorder:GlogglesBorder,FloatTitle:GlogglesTitle"
 
   local c = state.commits[state.current_commit_idx]
   if c then
