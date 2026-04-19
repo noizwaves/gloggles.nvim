@@ -81,6 +81,18 @@ All highlight groups are defined with `default = true` so your colorscheme takes
 - `GlogglesHelp` — help overlay text (links to `Comment`)
 - `GlogglesHelpKey` — help overlay keys (links to `Special`)
 
+## Development
+
+Dev tooling (`stylua`, `lefthook`) is pinned in `.mise.toml`. With [mise](https://mise.jdx.dev/) installed, run `mise install` to get both.
+
+After cloning, wire up the pre-commit hook so Lua changes are formatted automatically:
+
+```
+lefthook install
+```
+
+The hook is configured in `.lefthook.yml` and runs `stylua` on staged `*.lua` files, re-staging the formatted output.
+
 ## License
 
 MIT
