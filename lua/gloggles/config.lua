@@ -7,8 +7,11 @@ local defaults = {
     list_width_ratio = 0.3,
   },
   ui = {
-    title = "Gloggles (git line history)",
-    backdrop_margin = 4,
+    width_ratio = 1.0,
+    height_ratio = 1.0,
+    list_title = " Commits ",
+    preview_title = " Preview ",
+    help_title = " Help ",
   },
 }
 

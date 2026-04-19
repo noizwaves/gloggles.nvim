@@ -1,3 +1,5 @@
+local config = require("gloggles.config")
+
 local M = {}
 
 local help_entries = {
@@ -10,6 +12,8 @@ local help_entries = {
 }
 
 function M.toggle(state)
+  local opts = config.get()
+
   if state.help_visible then
     if state.help_win and vim.api.nvim_win_is_valid(state.help_win) then
       vim.api.nvim_win_close(state.help_win, true)
@@ -20,15 +24,21 @@ function M.toggle(state)
     state.help_win = nil
     state.help_buf = nil
     state.help_visible = false
-    vim.api.nvim_set_current_win(state.list_win)
+    if vim.api.nvim_win_is_valid(state.list_win) then
+      vim.api.nvim_set_current_win(state.list_win)
+    end
     return
   end
 
   local lines = {}
   local highlights = {}
+  local max_w = 0
   for _, entry in ipairs(help_entries) do
-    local line = "  " .. entry[1] .. "  " .. entry[2]
+    local line = "  " .. entry[1] .. "  " .. entry[2] .. "  "
     table.insert(lines, line)
+    if #line > max_w then
+      max_w = #line
+    end
     local key_end = 2 + #entry[1]
     table.insert(highlights, { #lines - 1, 2, key_end, "GlogglesHelpKey" })
     table.insert(highlights, { #lines - 1, key_end + 2, #line, "GlogglesHelp" })
@@ -44,22 +54,35 @@ function M.toggle(state)
     vim.api.nvim_buf_add_highlight(help_buf, ns, hl[4], hl[1], hl[2], hl[3])
   end
 
+  local editor_w = vim.o.columns
+  local editor_h = vim.o.lines
+  local width = math.max(max_w, #opts.ui.help_title + 4)
+  local height = #lines
+  local col = math.floor((editor_w - width) / 2) - 1
+  local row = math.floor((editor_h - height) / 2) - 1
+
   local help_win = vim.api.nvim_open_win(help_buf, false, {
     relative = "editor",
-    width = state.inner_w,
-    height = #lines,
-    col = state.inner_col,
-    row = state.inner_row,
+    width = width,
+    height = height,
+    col = col,
+    row = row,
     style = "minimal",
-    border = { "", "", "", "", "─", "─", "─", "" },
+    border = "rounded",
+    title = opts.ui.help_title,
+    title_pos = "center",
     zindex = 60,
   })
+  vim.wo[help_win].winhighlight =
+    "Normal:GlogglesNormal,NormalFloat:GlogglesNormal,FloatBorder:GlogglesBorder,FloatTitle:GlogglesTitle"
 
   state.help_buf = help_buf
   state.help_win = help_win
   state.help_visible = true
 
-  vim.api.nvim_set_current_win(state.list_win)
+  if vim.api.nvim_win_is_valid(state.list_win) then
+    vim.api.nvim_set_current_win(state.list_win)
+  end
 end
 
 return M
