@@ -20,7 +20,7 @@ Entry points:
 Module responsibilities (all under `lua/gloggles/`):
 - `config.lua` — default options table and `setup()` merge.
 - `git.lua` — shells out to `git log -L` with a custom `COMMIT_SEP`/`Hash:`/`Date:`/`Author:`/`Subject:` format, parses the stream into commit records (subject → `pr_number` via `Merge pull request #N` or trailing `(#N)`), and builds GitHub URLs from the `origin` remote.
-- `viewer.lua` — builds the floating UI: a backdrop window, a commit-list buffer, and a lazily-created diff preview window. Owns state (current commit index, preview/help visibility), buffer-local keymaps (`j`/`k`/`p`/`h`/`<CR>`/`o`/`<Esc>`), and the `CursorMoved` autocmd that syncs the preview.
+- `viewer.lua` — builds the floating UI: a backdrop window, a commit-list buffer, and a lazily-created diff preview window. Owns state (current commit index, preview/help visibility), buffer-local keymaps (`j`/`k`/`p`/`h`/`c`/`<CR>`/`<Esc>`), and the `CursorMoved` autocmd that syncs the preview.
 - `preview.lua` — toggles the diff window and re-renders the diff buffer from the selected commit's `diff_lines`.
 - `help.lua` — floating key-reference overlay.
 - `highlights.lua` — `default = true` highlight links (`GlogglesDate`, `GlogglesAuthor`, `GlogglesSubject`, `GlogglesPR`, `GlogglesHelp`, `GlogglesHelpKey`).

@@ -18,8 +18,8 @@ CONTENTS                                                   *gloggles-contents*
 gloggles is a viewer for `git log -L` (line history). Select a range of lines
 in a tracked file, invoke the viewer, and browse every commit that touched
 those lines with an inline diff preview. If the repository's origin points at
-GitHub, pressing <CR> opens the pull request in your browser and `o` opens
-the commit.
+GitHub, pressing <CR> opens the pull request in your browser (falling back to
+the commit page when the commit has no associated PR).
 
 ==============================================================================
 2. REQUIREMENTS                                       *gloggles-requirements*
@@ -87,8 +87,8 @@ Inside the viewer:
 
     j / k       Next / previous commit
     p           Toggle the diff preview pane
-    <CR>        Open the PR associated with the commit (GitHub origin)
-    o           Open the commit on GitHub
+    <CR>        Open the PR on GitHub, or the commit if there is no PR
+    c           Copy the underlying `git log -L` command to the clipboard
     h           Toggle the key reference overlay
     <Esc>       Close the viewer
 

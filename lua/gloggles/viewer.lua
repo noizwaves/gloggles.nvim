@@ -186,20 +186,11 @@ local function create_viewer(commits, git_root, rel_path, start_line, end_line)
 
   vim.keymap.set("n", "<CR>", function()
     local c = commits[state.current_commit_idx]
-    if not c or not c.pr_number then
-      vim.notify("No PR link for this commit", vim.log.levels.INFO)
-      return
-    end
-    if not pr_base_url then
-      vim.notify("No remote URL configured", vim.log.levels.WARN)
-      return
-    end
-    vim.ui.open(pr_base_url .. c.pr_number)
-  end, kopts)
-
-  vim.keymap.set("n", "o", function()
-    local c = commits[state.current_commit_idx]
     if not c then
+      return
+    end
+    if c.pr_number and pr_base_url then
+      vim.ui.open(pr_base_url .. c.pr_number)
       return
     end
     local url = git.get_commit_url(git_root, c.hash)
@@ -208,6 +199,13 @@ local function create_viewer(commits, git_root, rel_path, start_line, end_line)
     else
       vim.notify("No remote URL configured", vim.log.levels.WARN)
     end
+  end, kopts)
+
+  vim.keymap.set("n", "c", function()
+    local cmd = git.build_log_command(rel_path, start_line, end_line)
+    vim.fn.setreg("+", cmd)
+    vim.fn.setreg("*", cmd)
+    vim.notify("Copied git log command to clipboard", vim.log.levels.INFO)
   end, kopts)
 
   vim.api.nvim_create_autocmd("WinEnter", {

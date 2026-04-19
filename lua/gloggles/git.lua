@@ -81,13 +81,17 @@ function M.parse_log_output(raw_lines)
   return commits
 end
 
-function M.log_lines(rel_path, start_line, end_line)
-  local cmd = string.format(
+function M.build_log_command(rel_path, start_line, end_line)
+  return string.format(
     'git --no-pager log --format="COMMIT_SEP%%nHash: %%H%%nDate: %%as%%nAuthor: %%an%%nSubject: %%s" --no-color -L %d,%d:%s',
     start_line,
     end_line,
     rel_path
   )
+end
+
+function M.log_lines(rel_path, start_line, end_line)
+  local cmd = M.build_log_command(rel_path, start_line, end_line)
   local raw = vim.fn.systemlist(cmd, nil)
   if vim.v.shell_error ~= 0 then
     return nil, table.concat(raw, "\n")
