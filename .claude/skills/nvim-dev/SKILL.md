@@ -1,6 +1,7 @@
 ---
 name: nvim-dev
 description: Use when developing or debugging gloggles.nvim to launch a minimal Neovim instance that loads the plugin and verify changes via remote RPC
+allowed-tools: Bash(.claude/skills/nvim-dev/bin/nvim-start:*), Bash(.claude/skills/nvim-dev/bin/nvim-verify:*), Bash(.claude/skills/nvim-dev/bin/nvim-stop:*), Bash(nvim --server *)
 ---
 
 # Develop gloggles.nvim
