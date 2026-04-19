@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -uo pipefail
+
+STATE_FILE="/tmp/gloggles-nvim-dev.state"
+
+if [ ! -f "$STATE_FILE" ]; then
+  exit 0
+fi
+
+# shellcheck source=/dev/null
+source "$STATE_FILE"
+
+if [ -S "${SOCK:-}" ]; then
+  nvim --server "$SOCK" --remote-send ':qall!<CR>' 2>/dev/null || true
+  sleep 0.3
+fi
+
+case "${MODE:-}" in
+  tmux)
+    if [ -n "${WINDOW_ID:-}" ]; then
+      tmux kill-window -t "$WINDOW_ID" 2>/dev/null || true
+    fi
+    ;;
+  headless)
+    if [ -n "${NVIM_PID:-}" ]; then
+      kill "$NVIM_PID" 2>/dev/null || true
+    fi
+    ;;
+esac
+
+rm -f "${SOCK:-}" "$STATE_FILE"

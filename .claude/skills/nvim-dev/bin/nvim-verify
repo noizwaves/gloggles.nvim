@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+set -uo pipefail
+
+STATE_FILE="/tmp/gloggles-nvim-dev.state"
+
+if [ ! -f "$STATE_FILE" ]; then
+  echo "ERROR: no nvim server running (state file not found)" >&2
+  exit 2
+fi
+
+# shellcheck source=/dev/null
+source "$STATE_FILE"
+
+if [ -z "${SOCK:-}" ] || [ ! -S "$SOCK" ]; then
+  echo "ERROR: nvim socket not found at ${SOCK:-<unset>}" >&2
+  exit 2
+fi
+
+exit_code=0
+
+echo "=== Startup Errors ==="
+errmsg=$(nvim --server "$SOCK" --remote-expr 'luaeval("vim.v.errmsg")' 2>&1)
+if [ -z "$errmsg" ]; then
+  echo "PASS: no startup errors"
+else
+  echo "FAIL: startup error detected"
+  echo "  $errmsg"
+  exit_code=1
+fi
+
+echo ""
+echo "=== :Gloggles Command ==="
+cmd_exists=$(nvim --server "$SOCK" --remote-expr 'luaeval("vim.fn.exists(\":Gloggles\") == 2")' 2>&1)
+if [ "$cmd_exists" = "true" ]; then
+  echo "PASS: :Gloggles command registered"
+else
+  echo "FAIL: :Gloggles command not found"
+  echo "  $cmd_exists"
+  exit_code=1
+fi
+
+echo ""
+echo "=== Module Requires ==="
+requires_ok=$(nvim --server "$SOCK" --remote-expr 'luaeval("(pcall(require, \"gloggles\")) and (pcall(require, \"gloggles.viewer\")) and (pcall(require, \"gloggles.git\")) and (pcall(require, \"gloggles.config\")) and (pcall(require, \"gloggles.highlights\"))")' 2>&1)
+if [ "$requires_ok" = "true" ]; then
+  echo "PASS: all gloggles modules require cleanly"
+else
+  echo "FAIL: one or more gloggles modules failed to require"
+  echo "  $requires_ok"
+  exit_code=1
+fi
+
+echo ""
+echo "=== Default Highlights ==="
+hl_ok=$(nvim --server "$SOCK" --remote-expr 'luaeval("vim.fn.hlexists(\"GlogglesSubject\") == 1 and vim.fn.hlexists(\"GlogglesPR\") == 1 and vim.fn.hlexists(\"GlogglesDate\") == 1")' 2>&1)
+if [ "$hl_ok" = "true" ]; then
+  echo "PASS: default highlight groups defined"
+else
+  echo "FAIL: expected highlight groups missing"
+  echo "  $hl_ok"
+  exit_code=1
+fi
+
+exit $exit_code

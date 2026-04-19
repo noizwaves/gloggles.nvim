@@ -1,0 +1,6 @@
+pre-commit:
+  commands:
+    stylua:
+      glob: "*.lua"
+      run: stylua {staged_files}
+      stage_fixed: true

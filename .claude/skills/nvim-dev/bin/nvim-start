@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STATE_FILE="/tmp/gloggles-nvim-dev.state"
+SOCK="/tmp/gloggles-nvim-dev-$$.sock"
+TIMEOUT="${1:-15}"
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+INIT_FILE="$SCRIPT_DIR/../minimal_init.lua"
+
+rm -f "$SOCK"
+
+if [ -f "$STATE_FILE" ]; then
+  echo "Warning: stale state file found, cleaning up previous session"
+  "$SCRIPT_DIR/nvim-stop" 2>/dev/null || true
+fi
+
+if [ -n "${TMUX:-}" ]; then
+  WINDOW_ID=$(tmux new-window -d -P -F '#{window_id}' "nvim -u $INIT_FILE --listen $SOCK")
+  echo "SOCK=$SOCK" > "$STATE_FILE"
+  echo "WINDOW_ID=$WINDOW_ID" >> "$STATE_FILE"
+  echo "MODE=tmux" >> "$STATE_FILE"
+else
+  nvim --headless -u "$INIT_FILE" --listen "$SOCK" &
+  NVIM_PID=$!
+  echo "SOCK=$SOCK" > "$STATE_FILE"
+  echo "NVIM_PID=$NVIM_PID" >> "$STATE_FILE"
+  echo "MODE=headless" >> "$STATE_FILE"
+fi
+
+elapsed=0
+while ! nvim --server "$SOCK" --remote-expr '1' &>/dev/null; do
+  sleep 0.2
+  elapsed=$((elapsed + 1))
+  if [ "$elapsed" -ge $((TIMEOUT * 5)) ]; then
+    echo "ERROR: nvim server failed to start within ${TIMEOUT}s" >&2
+    "$SCRIPT_DIR/nvim-stop" 2>/dev/null || true
+    exit 2
+  fi
+done
+
+echo "$SOCK"

@@ -10,6 +10,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - Format: `stylua lua/ plugin/` (config in `stylua.toml` — 2-space indent, 120-col, double quotes).
 - There is no test suite or build step. Manual testing is done by loading the plugin in Neovim and running `:Gloggles` on a visual range.
+- Dev tooling (`stylua`, `lefthook`) is pinned in `.mise.toml`; run `mise install` after cloning. Then `lefthook install` wires up `.lefthook.yml`, which auto-formats staged Lua files on commit via `stylua`.
+- There is an `nvim-dev` Claude skill at `.claude/skills/nvim-dev/` that spawns a minimal nvim loading just this plugin for RPC-driven verification. See that skill's `SKILL.md` for the start/verify/stop workflow.
 
 ## Architecture
 
