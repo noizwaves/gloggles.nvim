@@ -47,8 +47,9 @@ local function render_commit_list(buf, commits)
   return line_to_commit, commit_first_line
 end
 
--- Layout is computed in terms of inner content sizes; each pane has a
--- rounded border rendered 1 cell outside its content rectangle.
+-- Layout is computed in terms of outer (border-inclusive) rectangles — the
+-- `row`/`col` passed to nvim_open_win position the top-left of the bordered
+-- window, so the content sits 1 cell inset from the outer rectangle.
 function M.compute_layout(preview_visible)
   local opts = config.get()
   local editor_w = vim.o.columns
@@ -62,8 +63,8 @@ function M.compute_layout(preview_visible)
   local base_row = math.floor((editor_h - total_h) / 2)
 
   local inner_h = total_h - 2
-  local list_row = base_row + 1
-  local list_col = base_col + 1
+  local list_row = base_row
+  local list_col = base_col
 
   local layout = {
     base_col = base_col,
