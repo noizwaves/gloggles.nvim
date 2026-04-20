@@ -2,7 +2,7 @@
 
 A viewer for `git log -L` (line history) in Neovim. Select lines, press a key, and browse every commit that touched them — with an inline diff preview and one-keystroke jumps to the pull request or commit on GitHub.
 
-![Preview](https://i.imgur.com/YwLtZvT.gif)
+![Preview](https://i.imgur.com/HTbQfWi.gif)
 
 ## Requirements
 
