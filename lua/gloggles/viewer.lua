@@ -283,8 +283,7 @@ local function create_viewer(commits, git_root, rel_path, start_line, end_line)
     end
   end
 
-  local kopts = { buffer = list_buf, nowait = true }
-  vim.keymap.set("n", "<Esc>", function()
+  local function close_all()
     for _, win in ipairs(vim.api.nvim_list_wins()) do
       if vim.api.nvim_win_is_valid(win) then
         local ok, cfg = pcall(vim.api.nvim_win_get_config, win)
@@ -293,21 +292,9 @@ local function create_viewer(commits, git_root, rel_path, start_line, end_line)
         end
       end
     end
-  end, kopts)
-  vim.keymap.set("n", "j", function()
-    jump_commit(1)
-  end, kopts)
-  vim.keymap.set("n", "k", function()
-    jump_commit(-1)
-  end, kopts)
-  vim.keymap.set("n", "p", function()
-    preview.toggle(state)
-  end, kopts)
-  vim.keymap.set("n", "h", function()
-    help.toggle(state)
-  end, kopts)
+  end
 
-  vim.keymap.set("n", "<CR>", function()
+  local function open_current_in_browser()
     local c = commits[state.current_commit_idx]
     if not c then
       return
@@ -322,14 +309,58 @@ local function create_viewer(commits, git_root, rel_path, start_line, end_line)
     else
       vim.notify("No remote URL configured", vim.log.levels.WARN)
     end
-  end, kopts)
+  end
 
-  vim.keymap.set("n", "c", function()
+  local function copy_git_log_cmd()
     local cmd = string.format("git log -L %d,%d:%s", start_line, end_line, rel_path)
     vim.fn.setreg("+", cmd)
     vim.fn.setreg("*", cmd)
     vim.notify("Copied git log command to clipboard", vim.log.levels.INFO)
+  end
+
+  local function apply_help_keymaps(buf)
+    local hopts = { buffer = buf, nowait = true }
+    vim.keymap.set("n", "<Esc>", close_all, hopts)
+    vim.keymap.set("n", "h", function()
+      help.toggle(state)
+    end, hopts)
+  end
+
+  local kopts = { buffer = list_buf, nowait = true }
+  vim.keymap.set("n", "<Esc>", close_all, kopts)
+  vim.keymap.set("n", "j", function()
+    jump_commit(1)
   end, kopts)
+  vim.keymap.set("n", "k", function()
+    jump_commit(-1)
+  end, kopts)
+  vim.keymap.set("n", "p", function()
+    preview.toggle(state)
+  end, kopts)
+  vim.keymap.set("n", "h", function()
+    help.toggle(state)
+    if state.help_visible and state.help_buf and vim.api.nvim_buf_is_valid(state.help_buf) then
+      apply_help_keymaps(state.help_buf)
+    end
+  end, kopts)
+
+  vim.keymap.set("n", "<CR>", open_current_in_browser, kopts)
+
+  vim.keymap.set("n", "c", copy_git_log_cmd, kopts)
+
+  local dkopts = { buffer = diff_buf, nowait = true }
+  vim.keymap.set("n", "<Esc>", close_all, dkopts)
+  vim.keymap.set("n", "j", function()
+    jump_commit(1)
+  end, dkopts)
+  vim.keymap.set("n", "k", function()
+    jump_commit(-1)
+  end, dkopts)
+  vim.keymap.set("n", "p", function()
+    preview.toggle(state)
+  end, dkopts)
+  vim.keymap.set("n", "<CR>", open_current_in_browser, dkopts)
+  vim.keymap.set("n", "c", copy_git_log_cmd, dkopts)
 
   vim.cmd("stopinsert")
   return state
