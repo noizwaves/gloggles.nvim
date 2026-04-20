@@ -96,9 +96,30 @@ local function create_viewer(commits, git_root, rel_path, start_line, end_line)
   local opts = config.get()
   local layout = M.compute_layout(opts.preview.enabled_by_default)
 
+  local bg_win = vim.api.nvim_get_current_win()
+  local saved_bg_winhl = vim.wo[bg_win].winhighlight
+  vim.wo[bg_win].winhighlight = (saved_bg_winhl ~= "" and saved_bg_winhl .. "," or "")
+    .. "CursorNC:GlogglesHiddenCursor"
+
+  local backdrop_buf = vim.api.nvim_create_buf(false, true)
+  vim.bo[backdrop_buf].buftype = "nofile"
+  vim.bo[backdrop_buf].swapfile = false
+  local backdrop_win = vim.api.nvim_open_win(backdrop_buf, false, {
+    relative = "editor",
+    width = vim.o.columns,
+    height = math.max(1, vim.o.lines - vim.o.cmdheight),
+    row = 0,
+    col = 0,
+    style = "minimal",
+    focusable = false,
+    zindex = 49,
+  })
+  vim.wo[backdrop_win].winhighlight = "Normal:GlogglesNormal"
+
   local list_buf = vim.api.nvim_create_buf(false, true)
   vim.bo[list_buf].buftype = "nofile"
   vim.bo[list_buf].swapfile = false
+  vim.bo[list_buf].bufhidden = "wipe"
 
   local list_win = vim.api.nvim_open_win(list_buf, true, {
     relative = "editor",
@@ -126,6 +147,8 @@ local function create_viewer(commits, git_root, rel_path, start_line, end_line)
     list_win = list_win,
     diff_buf = diff_buf,
     diff_win = nil,
+    backdrop_win = backdrop_win,
+    backdrop_buf = backdrop_buf,
     commits = commits,
     git_root = git_root,
     rel_path = rel_path,
@@ -183,6 +206,10 @@ local function create_viewer(commits, git_root, rel_path, start_line, end_line)
     once = true,
     callback = function()
       vim.o.guicursor = saved_guicursor
+      if pcall(vim.api.nvim_win_is_valid, bg_win) and vim.api.nvim_win_is_valid(bg_win) then
+        vim.wo[bg_win].winhighlight = saved_bg_winhl
+      end
+      pcall(vim.api.nvim_win_close, backdrop_win, true)
     end,
   })
 
@@ -258,9 +285,11 @@ local function create_viewer(commits, git_root, rel_path, start_line, end_line)
   local kopts = { buffer = list_buf, nowait = true }
   vim.keymap.set("n", "<Esc>", function()
     for _, win in ipairs(vim.api.nvim_list_wins()) do
-      local cfg = vim.api.nvim_win_get_config(win)
-      if cfg.relative ~= "" then
-        pcall(vim.api.nvim_win_close, win, true)
+      if vim.api.nvim_win_is_valid(win) then
+        local ok, cfg = pcall(vim.api.nvim_win_get_config, win)
+        if ok and cfg.relative ~= "" then
+          pcall(vim.api.nvim_win_close, win, true)
+        end
       end
     end
   end, kopts)
