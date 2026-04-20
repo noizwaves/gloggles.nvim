@@ -53,8 +53,8 @@ end
 function M.compute_layout(preview_visible)
   local opts = config.get()
   local editor_w = vim.o.columns
-  -- reserve space for cmdline + statusline so edge-to-edge (ratio=1.0) fits
-  local editor_h = vim.o.lines - vim.o.cmdheight - 1
+  -- reserve only the cmdline; the float overlays the statusline area
+  local editor_h = vim.o.lines - vim.o.cmdheight
 
   local total_w = math.floor(editor_w * opts.ui.width_ratio)
   local total_h = math.floor(editor_h * opts.ui.height_ratio)
